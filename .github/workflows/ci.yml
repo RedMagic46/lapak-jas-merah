@@ -1,0 +1,46 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build, Lint, and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-size: '18'
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "postgresql://dummy_user:dummy_password@localhost:5432/dummy_db"
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Tests
+        run: npm run test
+        env:
+          DATABASE_URL: "postgresql://dummy_user:dummy_password@localhost:5432/dummy_db"
+          JWT_SECRET: "ci-dummy-jwt-secret-key-12345"
+
+      - name: Build Application
+        run: npm run build
+        env:
+          DATABASE_URL: "postgresql://dummy_user:dummy_password@localhost:5432/dummy_db"
+          JWT_SECRET: "ci-dummy-jwt-secret-key-12345"

@@ -13,6 +13,15 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": "error",
+      "@next/next/no-img-element": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "@next/next/no-page-custom-font": "off",
+    }
+  }
 ]);
 
 export default eslintConfig;

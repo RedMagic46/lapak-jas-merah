@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local logs & docs
+email-logs.txt
+endpoint.txt
+remove-comments.ts
+
+# design mockups
+/halaman/
