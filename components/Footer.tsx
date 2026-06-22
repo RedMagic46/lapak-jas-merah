@@ -11,23 +11,23 @@ export default function Footer() {
       </div>
       <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-8">
         <div className="flex flex-col gap-2">
-          <Link href="#" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+          <Link href="/marketplace" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
             Pusat Bantuan
           </Link>
-          <Link href="#" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+          <Link href="/marketplace" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
             Keamanan Transaksi
           </Link>
         </div>
         <div className="flex flex-col gap-2">
-          <Link href="#" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+          <Link href="/marketplace" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
             Syarat &amp; Ketentuan
           </Link>
-          <Link href="#" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+          <Link href="/marketplace" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
             Kebijakan Privasi
           </Link>
         </div>
         <div className="flex flex-col gap-2">
-          <Link href="#" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+          <Link href="/marketplace" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
             Hubungi Kami
           </Link>
         </div>

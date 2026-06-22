@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import SellerSidebar from "@/components/SellerSidebar";
 import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateTransactionStatus } from "@/app/actions/transactions";
@@ -12,22 +11,50 @@ export default async function SellerDashboardPage() {
     redirect("/login");
   }
 
-  const [productsCount, transactions] = await Promise.all([
+  const [productsCount, recentTransactions, statsTransactions] = await Promise.all([
     prisma.product.count({
       where: { sellerId: user.id, status: "ACTIVE" }
     }),
     prisma.transaction.findMany({
       where: { sellerId: user.id },
       orderBy: { createdAt: "desc" },
-      include: {
-        buyer: true,
-        product: true,
+      take: 5,
+      select: {
+        id: true,
+        status: true,
+        meetupLocation: true,
+        meetupTime: true,
+        buyer: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
+        product: {
+          select: {
+            id: true,
+            title: true,
+            imageUrl: true,
+            price: true,
+          }
+        }
+      }
+    }),
+    prisma.transaction.findMany({
+      where: { sellerId: user.id },
+      select: {
+        status: true,
+        product: {
+          select: {
+            price: true,
+          }
+        }
       }
     })
   ]);
 
-  const pendingOrdersCount = transactions.filter(t => t.status === "PENDING").length;
-  const completedTransactions = transactions.filter(t => t.status === "COMPLETED");
+  const pendingOrdersCount = statsTransactions.filter(t => t.status === "PENDING").length;
+  const completedTransactions = statsTransactions.filter(t => t.status === "COMPLETED");
   const totalEarnings = completedTransactions.reduce((acc, t) => acc + t.product.price, 0);
 
   async function handleUpdateStatus(formData: FormData) {
@@ -39,10 +66,7 @@ export default async function SellerDashboardPage() {
   }
 
   return (
-    <div className="bg-surface text-on-surface font-body-md min-h-screen flex">
-      <SellerSidebar />
-
-      <main className="flex-1 lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
+    <main className="flex-1 lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
         <header className="flex justify-between items-center mb-8">
           <div>
             <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-1 font-bold">
@@ -138,7 +162,7 @@ export default async function SellerDashboardPage() {
             </Link>
           </div>
           <div className="overflow-x-auto">
-            {transactions.length === 0 ? (
+            {recentTransactions.length === 0 ? (
               <div className="p-12 text-center text-on-surface-variant/65">
                 Belum ada pengajuan transaksi COD yang masuk ke toko Anda.
               </div>
@@ -154,7 +178,7 @@ export default async function SellerDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="font-body-md text-body-md text-on-surface divide-y divide-outline-variant/20">
-                  {transactions.slice(0, 5).map((tx) => (
+                  {recentTransactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-surface-container-lowest/50 transition-colors">
                       <td className="py-3 px-4 flex items-center gap-3">
                         <img
@@ -242,6 +266,5 @@ export default async function SellerDashboardPage() {
           </div>
         </section>
       </main>
-    </div>
   );
 }

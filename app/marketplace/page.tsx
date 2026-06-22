@@ -7,6 +7,12 @@ import { toggleWishlist } from "@/app/actions/products";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
+import { PRODUCT_CATEGORIES } from "@/lib/helpers";
+
+export const unstable_instant = {
+  prefetch: "static",
+  unstable_disableValidation: true,
+};
 
 interface SearchParams {
   search?: string;
@@ -62,7 +68,7 @@ export default async function MarketplacePage({
     },
   });
 
-  const categories = ["Buku Kuliah", "Jas Lab", "Elektronik", "Kost", "Tutor Sebaya", "Lelang Cepat"];
+  const categories = PRODUCT_CATEGORIES;
 
   async function handleToggleWishlist(formData: FormData) {
     "use server";

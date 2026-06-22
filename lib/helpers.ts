@@ -39,6 +39,10 @@ export const PRODUCT_CATEGORIES = [
   "Kost",
   "Tutor Sebaya",
   "Lelang Cepat",
+  "Atribut & Pakaian",
+  "Alat Tulis & Kantor",
+  "Jasa & Cetak",
+  "Hobi & Olahraga",
 ] as const;
 
 export const DEFAULT_PRODUCT_IMAGE =

@@ -13,8 +13,8 @@ export default async function VerifyEmailPendingPage({ searchParams }: PageProps
     <div className="bg-background text-on-background min-h-screen flex flex-col font-body-lg">
       <main className="flex-grow flex items-center justify-center p-4 md:p-8">
         <div className="max-w-md w-full bg-surface-container-lowest rounded-2xl shadow-[0px_8px_30px_rgba(0,0,0,0.06)] border border-outline-variant/30 p-8 md:p-10 flex flex-col items-center text-center">
-          
-          
+
+
           <div className="mb-8">
             <Link href="/" className="font-display-lg text-headline-lg font-bold text-primary block tracking-tight">
               Lapak Jas Merah
@@ -24,17 +24,17 @@ export default async function VerifyEmailPendingPage({ searchParams }: PageProps
             </span>
           </div>
 
-          
+
           <div className="w-20 h-20 rounded-full bg-primary/5 flex items-center justify-center text-primary mb-6 animate-pulse">
             <span className="material-symbols-outlined text-[48px] font-light">mail</span>
           </div>
 
-          
+
           <h1 className="font-headline-md text-headline-md text-on-surface font-bold mb-4">
             Verifikasi Email Anda
           </h1>
 
-          
+
           <p className="font-body-md text-body-md text-on-surface-variant mb-6 text-sm leading-relaxed">
             Kami telah mengirimkan tautan verifikasi ke email resmi UMM Anda:
             {email && (
@@ -51,7 +51,7 @@ export default async function VerifyEmailPendingPage({ searchParams }: PageProps
             3. Klik tombol <strong>Verifikasi Email</strong> di dalam pesan untuk mengaktifkan akun Anda.
           </p>
 
-          
+
           {email ? (
             <ResendVerificationForm email={email} />
           ) : (
@@ -60,7 +60,7 @@ export default async function VerifyEmailPendingPage({ searchParams }: PageProps
             </p>
           )}
 
-          
+
           <div className="mt-8 pt-6 border-t border-outline-variant/30 w-full flex justify-between items-center text-xs font-semibold">
             <Link href="/login" className="text-on-surface-variant hover:text-primary transition-colors hover:underline">
               Kembali ke Login

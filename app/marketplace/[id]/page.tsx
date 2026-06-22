@@ -18,33 +18,53 @@ export default async function ProductDetailPage({
   const { id } = await params;
   const user = await getAuthUser();
 
-  const product = await prisma.product.findUnique({
-    where: { id },
-    include: {
-      seller: true,
-      reviews: {
-        include: {
-          user: true,
+  const [product, completedTransaction, activeTransaction] = await Promise.all([
+    prisma.product.findUnique({
+      where: { id },
+      include: {
+        seller: true,
+        reviews: {
+          include: {
+            user: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
         },
-        orderBy: {
-          createdAt: "desc",
+        wishlists: {
+          where: {
+            userId: user?.id || "",
+          },
+        },
+        bids: {
+          include: {
+            bidder: true,
+          },
+          orderBy: {
+            amount: "desc",
+          },
         },
       },
-      wishlists: {
-        where: {
-          userId: user?.id || "",
-        },
-      },
-      bids: {
-        include: {
-          bidder: true,
-        },
-        orderBy: {
-          amount: "desc",
-        },
-      },
-    },
-  });
+    }),
+    user
+      ? prisma.transaction.findFirst({
+          where: {
+            productId: id,
+            buyerId: user.id,
+            status: "COMPLETED",
+          },
+        })
+      : Promise.resolve(null),
+    user
+      ? prisma.transaction.findFirst({
+          where: {
+            productId: id,
+            buyerId: user.id,
+            status: { in: ["PENDING", "ACCEPTED"] },
+          },
+        })
+      : Promise.resolve(null),
+  ]);
 
   if (!product) {
     notFound();
@@ -59,16 +79,6 @@ export default async function ProductDetailPage({
             blockerId: user.id,
             blockedId: product.sellerId,
           },
-        },
-      })
-    : null;
-
-  const completedTransaction = user
-    ? await prisma.transaction.findFirst({
-        where: {
-          productId: id,
-          buyerId: user.id,
-          status: "COMPLETED",
         },
       })
     : null;
@@ -264,13 +274,33 @@ export default async function ProductDetailPage({
                   Sistem Lelang Aktif
                 </button>
               ) : product.status === "ACTIVE" ? (
-                <Link
-                  href={`/marketplace/${product.id}/transaksi`}
-                  className="flex-1 flex justify-center items-center gap-2 bg-primary text-on-primary hover:bg-primary-container py-3.5 rounded-xl transition-colors font-label-md text-label-md font-bold text-center shadow-sm"
-                >
-                  <span className="material-symbols-outlined text-xl">where_to_vote</span>
-                  {product.isService ? "Pesan Jasa / Bimbingan" : "Ajukan COD"}
-                </Link>
+                user && product.sellerId === user.id ? (
+                  <Link
+                    href="/seller/products"
+                    className="flex-1 flex justify-center items-center gap-2 bg-surface-container text-on-surface-variant hover:bg-surface-container-high py-3.5 rounded-xl transition-colors font-label-md text-label-md font-bold text-center shadow-sm"
+                  >
+                    <span className="material-symbols-outlined text-xl">dashboard</span>
+                    Barang Anda
+                  </Link>
+                ) : activeTransaction ? (
+                  <Link
+                    href={`/chat?partnerId=${product.seller.id}&productId=${product.id}`}
+                    className="flex-1 flex justify-center items-center gap-2 bg-amber-500 text-white hover:bg-amber-600 py-3.5 rounded-xl transition-colors font-label-md text-label-md font-bold text-center shadow-sm"
+                  >
+                    <span className="material-symbols-outlined text-xl">hourglass_empty</span>
+                    {activeTransaction.status === "PENDING"
+                      ? (product.isService ? "Pemesanan Tertunda" : "COD Tertunda")
+                      : (product.isService ? "Pemesanan Diterima (Buka Chat)" : "COD Diterima (Buka Chat)")}
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/marketplace/${product.id}/transaksi`}
+                    className="flex-1 flex justify-center items-center gap-2 bg-primary text-on-primary hover:bg-primary-container py-3.5 rounded-xl transition-colors font-label-md text-label-md font-bold text-center shadow-sm"
+                  >
+                    <span className="material-symbols-outlined text-xl">where_to_vote</span>
+                    {product.isService ? "Pesan Jasa / Bimbingan" : "Ajukan COD"}
+                  </Link>
+                )
               ) : (
                 <button
                   disabled

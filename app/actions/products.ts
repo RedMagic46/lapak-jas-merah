@@ -7,6 +7,7 @@ import { productSchema, reviewSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rateLimiter";
 import { extractValidationErrors, DEFAULT_PRODUCT_IMAGE } from "@/lib/helpers";
 import type { ActionResponse } from "@/lib/types";
+import { uploadImage } from "@/lib/storage";
 
 export async function createProduct(
   formData: FormData
@@ -59,13 +60,38 @@ export async function createProduct(
     imageUrl: formData.get("imageUrl"),
   });
 
+  const validationErrors: Record<string, string[]> = {};
   if (!validation.success) {
-    return { validationErrors: extractValidationErrors(validation) };
+    Object.assign(validationErrors, extractValidationErrors(validation));
+  }
+
+  if (rawIsAuction) {
+    if (!rawAuctionEnds) {
+      validationErrors["auctionEnds"] = ["Waktu selesai lelang wajib diisi jika dijadikan lelang."];
+    } else if (rawAuctionEnds <= new Date()) {
+      validationErrors["auctionEnds"] = ["Waktu selesai lelang harus di masa depan."];
+    }
+    if (isNaN(rawStartingBid) || rawStartingBid <= 0) {
+      validationErrors["startingBid"] = ["Harga mulai lelang harus lebih besar dari Rp 0."];
+    }
+  }
+
+  if (!validation.success || Object.keys(validationErrors).length > 0) {
+    return { validationErrors };
   }
 
   const { title, description, price, category, faculty, imageUrl } =
     validation.data;
-  const finalImageUrl = imageUrl || DEFAULT_PRODUCT_IMAGE;
+  let finalImageUrl = imageUrl || DEFAULT_PRODUCT_IMAGE;
+
+  const imageFile = formData.get("image") as File | null;
+  if (imageFile && imageFile.size > 0 && imageFile.name !== "") {
+    const uploadRes = await uploadImage(imageFile, "lapak-jas-merah", "products");
+    if (uploadRes.error) {
+      return { error: uploadRes.error };
+    }
+    finalImageUrl = uploadRes.url || DEFAULT_PRODUCT_IMAGE;
+  }
 
   try {
     if (user.role === "BUYER") {
@@ -148,8 +174,24 @@ export async function updateProduct(
     imageUrl: formData.get("imageUrl"),
   });
 
+  const validationErrors: Record<string, string[]> = {};
   if (!validation.success) {
-    return { validationErrors: extractValidationErrors(validation) };
+    Object.assign(validationErrors, extractValidationErrors(validation));
+  }
+
+  if (rawIsAuction) {
+    if (!rawAuctionEnds) {
+      validationErrors["auctionEnds"] = ["Waktu selesai lelang wajib diisi jika dijadikan lelang."];
+    } else if (rawAuctionEnds <= new Date()) {
+      validationErrors["auctionEnds"] = ["Waktu selesai lelang harus di masa depan."];
+    }
+    if (isNaN(rawStartingBid) || rawStartingBid <= 0) {
+      validationErrors["startingBid"] = ["Harga mulai lelang harus lebih besar dari Rp 0."];
+    }
+  }
+
+  if (!validation.success || Object.keys(validationErrors).length > 0) {
+    return { validationErrors };
   }
 
   const { title, description, price, category, faculty, imageUrl } =
@@ -164,6 +206,17 @@ export async function updateProduct(
       };
     }
 
+    let finalImageUrl = imageUrl || product.imageUrl;
+
+    const imageFile = formData.get("image") as File | null;
+    if (imageFile && imageFile.size > 0 && imageFile.name !== "") {
+      const uploadRes = await uploadImage(imageFile, "lapak-jas-merah", "products");
+      if (uploadRes.error) {
+        return { error: uploadRes.error };
+      }
+      finalImageUrl = uploadRes.url || product.imageUrl;
+    }
+
     await prisma.product.update({
       where: { id },
       data: {
@@ -172,7 +225,7 @@ export async function updateProduct(
         price,
         category,
         faculty: faculty || null,
-        imageUrl: imageUrl || product.imageUrl,
+        imageUrl: finalImageUrl,
         transactionType: rawTransactionType,
         barterWith: rawBarterWith,
         autoBumpEnabled: rawAutoBumpEnabled,

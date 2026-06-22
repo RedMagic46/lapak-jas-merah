@@ -4,31 +4,167 @@ import Footer from "@/components/Footer";
 import MobileNav from "@/components/MobileNav";
 import { prisma } from "@/lib/prisma";
 import type { Product, ForumPost, FAQ, User } from "@prisma/client";
+import { Suspense } from "react";
 
-export default async function Home() {
+export const unstable_instant = {
+  prefetch: "static",
+  unstable_disableValidation: true,
+};
 
+// SKELETON LOADERS FOR STREAMING
+function RecommendedProductsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-gutter">
+      {Array.from({ length: 4 }).map((_, idx) => (
+        <div
+          key={idx}
+          className="bg-surface-container-lowest rounded-[16px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] p-card-padding flex flex-col animate-pulse"
+        >
+          <div className="w-full aspect-square rounded-[12px] bg-surface-container-low mb-4"></div>
+          <div className="h-4 bg-surface-container-low rounded w-3/4 mb-2"></div>
+          <div className="h-4 bg-surface-container-low rounded w-1/2 mt-auto"></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LatestForumPostsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+      {Array.from({ length: 3 }).map((_, idx) => (
+        <div
+          key={idx}
+          className="bg-surface rounded-xl shadow-sm border border-outline-variant p-6 flex flex-col animate-pulse"
+        >
+          <div className="h-4 bg-surface-container-low rounded w-1/4 mb-3"></div>
+          <div className="h-6 bg-surface-container-low rounded w-3/4 mb-2"></div>
+          <div className="h-4 bg-surface-container-low rounded w-full mb-4"></div>
+          <div className="h-4 bg-surface-container-low rounded w-1/2 mt-auto"></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FAQListSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {Array.from({ length: 4 }).map((_, idx) => (
+        <div
+          key={idx}
+          className="bg-surface-container-lowest rounded-lg p-6 shadow-sm border border-outline-variant animate-pulse"
+        >
+          <div className="h-5 bg-surface-container-low rounded w-3/4 mb-2"></div>
+          <div className="h-4 bg-surface-container-low rounded w-full"></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ASYNCHRONOUS CHILD COMPONENTS WITH DATA FETCHING
+async function RecommendedProducts() {
   let products: (Product & { seller: User })[] = [];
   try {
-    products = await prisma.product.findMany({
+    products = (await prisma.product.findMany({
       where: { status: "ACTIVE" },
       take: 4,
-      orderBy: { createdAt: "desc" },
-      include: { seller: true }
-    }) as (Product & { seller: User })[];
+      orderBy: [{ isPromoted: "desc" }, { createdAt: "desc" }],
+      include: { seller: true },
+    })) as (Product & { seller: User })[];
   } catch (error) {
     console.error("Gagal memuat produk rekomendasi:", error);
   }
 
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-gutter">
+      {products.map((product) => (
+        <Link
+          key={product.id}
+          href={`/marketplace/${product.id}`}
+          className="bg-surface-container-lowest rounded-[16px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] p-card-padding flex flex-col hover:shadow-md transition-shadow cursor-pointer"
+        >
+          <div className="w-full aspect-square rounded-[12px] bg-surface-container-low mb-4 overflow-hidden relative">
+            {product.imageUrl && (
+              <img
+                className="w-full h-full object-cover"
+                alt={product.title}
+                src={product.imageUrl}
+              />
+            )}
+            {product.seller.isVerified && (
+              <div className="absolute top-2 right-2 bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-2 py-1 rounded-full flex items-center gap-1 shadow-sm font-semibold">
+                <span className="material-symbols-outlined text-xs">check_circle</span>
+                Verified
+              </div>
+            )}
+          </div>
+          <div className="flex-1 flex flex-col">
+            <div className="inline-flex w-fit bg-surface-container text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded-full mb-2">
+              {product.faculty || "Umum"}
+            </div>
+            <h4 className="font-body-md text-body-md text-on-surface font-medium line-clamp-2 mb-1">
+              {product.title}
+            </h4>
+            <p className="font-headline-md text-[18px] leading-tight font-bold text-primary mt-auto">
+              Rp {product.price.toLocaleString("id-ID")}
+            </p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+async function LatestForumPosts() {
   let forumPosts: ForumPost[] = [];
   try {
     forumPosts = await prisma.forumPost.findMany({
       take: 3,
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
   } catch (error) {
     console.error("Gagal memuat diskusi forum:", error);
   }
 
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+      {forumPosts.map((post) => (
+        <Link
+          key={post.id}
+          href={`/forum/${post.id}`}
+          className="bg-surface rounded-xl shadow-sm border border-outline-variant p-6 flex flex-col hover:border-primary hover:shadow-md transition-all cursor-pointer"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className="bg-primary-container text-on-primary-container text-[10px] px-2 py-0.5 rounded-md font-medium">
+              {post.category}
+            </div>
+            <span className="text-[10px] text-on-surface-variant font-medium">Aktif</span>
+          </div>
+          <h4 className="font-title-lg text-title-lg font-bold text-on-surface mb-2 line-clamp-1 hover:text-primary">
+            {post.title}
+          </h4>
+          <p className="font-body-md text-body-md text-on-surface-variant mb-4 line-clamp-2 leading-relaxed">
+            {post.content}
+          </p>
+          <div className="flex items-center gap-4 text-on-surface-variant mt-auto border-t border-outline-variant/10 pt-3">
+            <div className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-lg text-red-500 fill-red-500">favorite</span>{" "}
+              <span className="text-sm">{post.likes}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-lg">chat_bubble</span>{" "}
+              <span className="text-sm">{post.repliesCount}</span>
+            </div>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+async function FAQList() {
   let faqs: FAQ[] = [];
   try {
     faqs = await prisma.fAQ.findMany({
@@ -38,6 +174,27 @@ export default async function Home() {
     console.error("Gagal memuat FAQ:", error);
   }
 
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {faqs.map((faq) => (
+        <div
+          key={faq.id}
+          className="bg-surface-container-lowest rounded-lg p-6 shadow-sm border border-outline-variant"
+        >
+          <h4 className="font-title-lg text-title-lg font-bold text-on-surface mb-2">
+            {faq.question}
+          </h4>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            {faq.answer}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// MAIN HOMEPAGE COMPONENT
+export default async function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-on-background pb-[80px] lg:pb-0 font-body-md antialiased">
       <Navbar />
@@ -53,9 +210,9 @@ export default async function Home() {
             <div className="absolute inset-0 bg-surface/70 backdrop-blur-[12px]"></div>
           </div>
           <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col items-center">
-            <h2 className="font-display-lg text-headline-lg-mobile md:text-display-lg font-bold text-on-surface mb-6 drop-shadow-sm leading-tight">
-              Marketplace Mahasiswa UMM yang Aman dan Terpercaya
-            </h2>
+            <h1 className="font-display-lg text-headline-lg-mobile md:text-display-lg font-bold text-on-surface mb-6 drop-shadow-sm leading-tight">
+              Lapak Jas Merah: Marketplace Mahasiswa UMM yang Aman dan Terpercaya
+            </h1>
             <div className="w-full max-w-2xl mb-8 relative">
               <form action="/marketplace" method="GET">
                 <div className="flex items-center bg-surface-container-lowest shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-outline rounded-full px-6 py-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
@@ -161,6 +318,30 @@ export default async function Home() {
                 >
                   <span className="material-symbols-outlined text-xl">apartment</span> Kost
                 </Link>
+                <Link
+                  href="/marketplace?category=Atribut+%26+Pakaian"
+                  className="flex items-center gap-3 px-4 py-3 bg-surface-container-lowest border border-surface-variant rounded-lg text-on-surface-variant font-label-md text-label-md whitespace-nowrap lg:whitespace-normal hover:bg-surface-container-highest transition-colors"
+                >
+                  <span className="material-symbols-outlined text-xl">apparel</span> Atribut &amp; Pakaian
+                </Link>
+                <Link
+                  href="/marketplace?category=Alat+Tulis+%26+Kantor"
+                  className="flex items-center gap-3 px-4 py-3 bg-surface-container-lowest border border-surface-variant rounded-lg text-on-surface-variant font-label-md text-label-md whitespace-nowrap lg:whitespace-normal hover:bg-surface-container-highest transition-colors"
+                >
+                  <span className="material-symbols-outlined text-xl">draw</span> Alat Tulis &amp; Kantor
+                </Link>
+                <Link
+                  href="/marketplace?category=Jasa+%26+Cetak"
+                  className="flex items-center gap-3 px-4 py-3 bg-surface-container-lowest border border-surface-variant rounded-lg text-on-surface-variant font-label-md text-label-md whitespace-nowrap lg:whitespace-normal hover:bg-surface-container-highest transition-colors"
+                >
+                  <span className="material-symbols-outlined text-xl">print</span> Jasa &amp; Cetak
+                </Link>
+                <Link
+                  href="/marketplace?category=Hobi+%26+Olahraga"
+                  className="flex items-center gap-3 px-4 py-3 bg-surface-container-lowest border border-surface-variant rounded-lg text-on-surface-variant font-label-md text-label-md whitespace-nowrap lg:whitespace-normal hover:bg-surface-container-highest transition-colors"
+                >
+                  <span className="material-symbols-outlined text-xl">sports_soccer</span> Hobi &amp; Olahraga
+                </Link>
               </div>
             </div>
 
@@ -174,42 +355,9 @@ export default async function Home() {
                   <span className="material-symbols-outlined ml-1 text-sm">arrow_forward</span>
                 </Link>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-gutter">
-                {products.map((product) => (
-                  <Link
-                    key={product.id}
-                    href={`/marketplace/${product.id}`}
-                    className="bg-surface-container-lowest rounded-[16px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] p-card-padding flex flex-col hover:shadow-md transition-shadow cursor-pointer"
-                  >
-                    <div className="w-full aspect-square rounded-[12px] bg-surface-container-low mb-4 overflow-hidden relative">
-                      {product.imageUrl && (
-                        <img
-                          className="w-full h-full object-cover"
-                          alt={product.title}
-                          src={product.imageUrl}
-                        />
-                      )}
-                      {product.seller.isVerified && (
-                        <div className="absolute top-2 right-2 bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-2 py-1 rounded-full flex items-center gap-1 shadow-sm font-semibold">
-                          <span className="material-symbols-outlined text-xs">check_circle</span>
-                          Verified
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 flex flex-col">
-                      <div className="inline-flex w-fit bg-surface-container text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded-full mb-2">
-                        {product.faculty || "Umum"}
-                      </div>
-                      <h4 className="font-body-md text-body-md text-on-surface font-medium line-clamp-2 mb-1">
-                        {product.title}
-                      </h4>
-                      <p className="font-headline-md text-[18px] leading-tight font-bold text-primary mt-auto">
-                        Rp {product.price.toLocaleString("id-ID")}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <Suspense fallback={<RecommendedProductsSkeleton />}>
+                <RecommendedProducts />
+              </Suspense>
             </div>
           </div>
         </section>
@@ -220,41 +368,13 @@ export default async function Home() {
               <h2 className="font-headline-lg-mobile md:text-headline-lg font-bold text-on-surface">
                 Forum Komunitas
               </h2>
-              <Link href="#" className="font-label-md text-label-md text-primary hover:underline flex items-center">
+              <Link href="/forum" className="font-label-md text-label-md text-primary hover:underline flex items-center">
                 Semua Diskusi <span className="material-symbols-outlined ml-1 text-sm">arrow_forward</span>
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-              {forumPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-surface rounded-xl shadow-sm border border-outline-variant p-6 flex flex-col hover:border-primary transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="bg-primary-container text-on-primary-container text-xs px-2 py-1 rounded-md font-medium">
-                      {post.category}
-                    </div>
-                    <span className="text-xs text-on-surface-variant">Active</span>
-                  </div>
-                  <h4 className="font-title-lg text-title-lg font-bold text-on-surface mb-2">
-                    {post.title}
-                  </h4>
-                  <p className="font-body-md text-body-md text-on-surface-variant mb-4 line-clamp-2">
-                    {post.content}
-                  </p>
-                  <div className="flex items-center gap-4 text-on-surface-variant mt-auto">
-                    <div className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-lg">favorite</span>{" "}
-                      <span className="text-sm">{post.likes}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-lg">chat_bubble</span>{" "}
-                      <span className="text-sm">{post.repliesCount}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Suspense fallback={<LatestForumPostsSkeleton />}>
+              <LatestForumPosts />
+            </Suspense>
           </div>
         </section>
 
@@ -288,21 +408,9 @@ export default async function Home() {
             <h2 className="font-headline-lg-mobile md:text-headline-lg font-bold text-on-surface mb-8 text-center">
               Pertanyaan yang Sering Diajukan (FAQ)
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {faqs.map((faq) => (
-                <div
-                  key={faq.id}
-                  className="bg-surface-container-lowest rounded-lg p-6 shadow-sm border border-outline-variant"
-                >
-                  <h4 className="font-title-lg text-title-lg font-bold text-on-surface mb-2">
-                    {faq.question}
-                  </h4>
-                  <p className="font-body-md text-body-md text-on-surface-variant">
-                    {faq.answer}
-                  </p>
-                </div>
-              ))}
-            </div>
+            <Suspense fallback={<FAQListSkeleton />}>
+              <FAQList />
+            </Suspense>
           </div>
         </section>
       </main>

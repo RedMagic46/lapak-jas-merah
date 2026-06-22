@@ -16,7 +16,7 @@ export default async function Navbar() {
         <Link href="/marketplace" className="hover:text-primary transition-colors">
           Marketplace
         </Link>
-        <Link href="/#forum" className="hover:text-primary transition-colors">
+        <Link href="/forum" className="hover:text-primary transition-colors">
           Forum
         </Link>
         <Link href="/#faq" className="hover:text-primary transition-colors">

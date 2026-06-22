@@ -55,6 +55,21 @@ export async function createTransactionRequest(
       };
     }
 
+    const existingPending = await prisma.transaction.findFirst({
+      where: {
+        productId,
+        buyerId: user.id,
+        status: "PENDING",
+      },
+    });
+
+    if (existingPending) {
+      return {
+        error:
+          "Anda sudah mengirimkan pengajuan COD untuk produk ini. Harap tunggu konfirmasi (diterima/ditolak) dari penjual sebelum mengajukan kembali.",
+      };
+    }
+
     const rawPaymentMethod =
       (formData.get("paymentMethod") as string) || "COD_CASH";
 

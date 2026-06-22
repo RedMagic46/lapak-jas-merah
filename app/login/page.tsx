@@ -105,7 +105,9 @@ function LoginFormContent() {
                       <span className="material-symbols-outlined text-[20px]">person</span>
                     </div>
                     <input
-                      className="block w-full pl-10 pr-3 py-3 border border-outline-variant rounded-lg bg-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface transition-colors"
+                      className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface transition-colors ${
+                        state?.validationErrors?.identifier ? "border-error" : "border-outline-variant"
+                      }`}
                       id="identifier"
                       name="identifier"
                       placeholder="Masukkan NIM atau Email UMM Anda"
@@ -113,6 +115,12 @@ function LoginFormContent() {
                       type="text"
                     />
                   </div>
+                  {state?.validationErrors?.identifier && (
+                    <p className="text-error text-xs mt-1 font-semibold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      {state.validationErrors.identifier[0]}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -124,7 +132,9 @@ function LoginFormContent() {
                       <span className="material-symbols-outlined text-[20px]">lock</span>
                     </div>
                     <input
-                      className="block w-full pl-10 pr-10 py-3 border border-outline-variant rounded-lg bg-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface transition-colors"
+                      className={`block w-full pl-10 pr-10 py-3 border rounded-lg bg-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-body-md text-body-md text-on-surface transition-colors ${
+                        state?.validationErrors?.password ? "border-error" : "border-outline-variant"
+                      }`}
                       id="password"
                       name="password"
                       placeholder="Masukkan password Anda"
@@ -132,6 +142,12 @@ function LoginFormContent() {
                       type="password"
                     />
                   </div>
+                  {state?.validationErrors?.password && (
+                    <p className="text-error text-xs mt-1 font-semibold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      {state.validationErrors.password[0]}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between mt-4">
@@ -147,7 +163,7 @@ function LoginFormContent() {
                     </label>
                   </div>
                   <div className="text-sm">
-                    <Link href="#" className="font-label-md text-label-md text-primary hover:underline hover:text-primary-container transition-colors font-semibold">
+                    <Link href="/login" className="font-label-md text-label-md text-primary hover:underline hover:text-primary-container transition-colors font-semibold">
                       Lupa Password?
                     </Link>
                   </div>
@@ -192,9 +208,9 @@ function LoginFormContent() {
             © 2024 Lapak Jas Merah - Universitas Muhammadiyah Malang. Student-to-Student Marketplace.
           </div>
           <nav className="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 font-label-md text-label-md text-sm font-semibold">
-            <Link href="#" className="text-on-surface-variant hover:text-primary underline decoration-2 underline-offset-4 transition-colors">Terms of Service</Link>
-            <Link href="#" className="text-on-surface-variant hover:text-primary underline decoration-2 underline-offset-4 transition-colors">Privacy Policy</Link>
-            <Link href="#" className="text-on-surface-variant hover:text-primary underline decoration-2 underline-offset-4 transition-colors">Help Center</Link>
+            <Link href="/" className="text-on-surface-variant hover:text-primary underline decoration-2 underline-offset-4 transition-colors">Terms of Service</Link>
+            <Link href="/" className="text-on-surface-variant hover:text-primary underline decoration-2 underline-offset-4 transition-colors">Privacy Policy</Link>
+            <Link href="/" className="text-on-surface-variant hover:text-primary underline decoration-2 underline-offset-4 transition-colors">Help Center</Link>
           </nav>
         </div>
       </footer>

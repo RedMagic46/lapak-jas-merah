@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import SellerSidebar from "@/components/SellerSidebar";
 import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createProduct, updateProduct, deleteProduct, sundulProductAction } from "@/app/actions/products";
+import { deleteProduct, sundulProductAction } from "@/app/actions/products";
+import ProductFormModal from "./ProductFormModal";
 import { revalidatePath } from "next/cache";
+import { PRODUCT_CATEGORIES } from "@/lib/helpers";
 
 interface PageProps {
   searchParams: Promise<{ add?: string; edit?: string }>;
@@ -20,27 +21,21 @@ export default async function SellerProductsPage({ searchParams }: PageProps) {
 
   const products = await prisma.product.findMany({
     where: { sellerId: user.id },
-    orderBy: { createdAt: "desc" }
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      price: true,
+      category: true,
+      imageUrl: true,
+      status: true,
+      createdAt: true,
+    }
   });
 
-  const categories = ["Buku Kuliah", "Jas Lab", "Elektronik", "Kost", "Tutor Sebaya", "Lelang Cepat"];
+  const categories = [...PRODUCT_CATEGORIES];
 
-  async function handleCreate(formData: FormData) {
-    "use server";
-    const res = await createProduct(formData);
-    if (res.success) {
-      redirect("/seller/products");
-    }
-  }
 
-  async function handleEdit(formData: FormData) {
-    "use server";
-    const productId = formData.get("productId") as string;
-    const res = await updateProduct(productId, formData);
-    if (res.success) {
-      redirect("/seller/products");
-    }
-  }
 
   async function handleDelete(formData: FormData) {
     "use server";
@@ -64,10 +59,7 @@ export default async function SellerProductsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="bg-surface text-on-surface font-body-md min-h-screen flex">
-      <SellerSidebar />
-
-      <main className="flex-grow lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
+    <main className="flex-grow lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
         <header className="flex justify-between items-center mb-8">
           <div>
             <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface font-bold leading-tight">
@@ -185,326 +177,19 @@ export default async function SellerProductsPage({ searchParams }: PageProps) {
         </div>
 
         {add && (
-          <div className="fixed inset-0 bg-black/55 backdrop-blur-[4px] z-50 flex items-center justify-center p-4">
-            <div className="bg-surface-container-lowest max-w-lg w-full rounded-2xl shadow-xl overflow-hidden border border-outline-variant/35 flex flex-col max-h-[90vh]">
-              <div className="p-6 border-b border-outline-variant/30 flex justify-between items-center bg-surface-bright">
-                <h3 className="font-title-lg text-title-lg font-bold text-on-surface">Tambah Produk Baru</h3>
-                <Link href="/seller/products" className="text-on-surface-variant hover:text-primary transition-colors">
-                  <span className="material-symbols-outlined">close</span>
-                </Link>
-              </div>
-              <form action={handleCreate} className="p-6 overflow-y-auto space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="title">
-                    Nama / Judul Barang
-                  </label>
-                  <input
-                    id="title"
-                    name="title"
-                    required
-                    type="text"
-                    placeholder="Contoh: Buku Kalkulus Purcell Jilid 1"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                 <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="price">
-                    Harga (Rp) (Opsional jika Lelang)
-                  </label>
-                  <input
-                    id="price"
-                    name="price"
-                    type="number"
-                    placeholder="Masukkan nominal angka saja, misal: 75000"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 bg-surface-container-low p-3 rounded-lg border border-outline-variant/30">
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="isAuction"
-                      name="isAuction"
-                      type="checkbox"
-                      value="true"
-                      className="w-4 h-4 cursor-pointer accent-primary"
-                    />
-                    <label htmlFor="isAuction" className="text-xs font-semibold text-on-surface cursor-pointer">
-                      Jadikan Lelang
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="isService"
-                      name="isService"
-                      type="checkbox"
-                      value="true"
-                      className="w-4 h-4 cursor-pointer accent-primary"
-                    />
-                    <label htmlFor="isService" className="text-xs font-semibold text-on-surface cursor-pointer">
-                      Jasa / Tutor
-                    </label>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="startingBid">
-                    Harga Mulai Lelang (Wajib jika Lelang)
-                  </label>
-                  <input
-                    id="startingBid"
-                    name="startingBid"
-                    type="number"
-                    placeholder="Contoh: 50000"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="auctionEnds">
-                    Waktu Selesai Lelang (Wajib jika Lelang)
-                  </label>
-                  <input
-                    id="auctionEnds"
-                    name="auctionEnds"
-                    type="datetime-local"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="category">
-                    Kategori
-                  </label>
-                  <select
-                    id="category"
-                    name="category"
-                    required
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer"
-                  >
-                    <option value="">-- Pilih Kategori --</option>
-                    {categories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="faculty">
-                    Rekomendasi Fakultas (Opsional)
-                  </label>
-                  <input
-                    id="faculty"
-                    name="faculty"
-                    type="text"
-                    placeholder="Contoh: FEB, FT, Fikes, dll."
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="imageUrl">
-                    URL Foto Produk (Opsional)
-                  </label>
-                  <input
-                    id="imageUrl"
-                    name="imageUrl"
-                    type="text"
-                    placeholder="Masukkan link gambar (Unsplash, Imgur, dll.)"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="description">
-                    Deskripsi Detail
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    required
-                    rows={4}
-                    placeholder="Jelaskan kondisi barang Anda (ada coretan/tidak, ukuran, kelengkapan, dll.)"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none"
-                  ></textarea>
-                </div>
-                <div className="pt-4 flex gap-3 border-t border-outline-variant/30">
-                  <Link
-                    href="/seller/products"
-                    className="flex-1 text-center py-2.5 border border-outline rounded-lg text-on-surface-variant hover:bg-surface-container font-semibold transition-colors"
-                  >
-                    Batal
-                  </Link>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 bg-primary text-on-primary rounded-lg hover:opacity-90 font-bold transition-opacity shadow-sm"
-                  >
-                    Simpan Iklan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <ProductFormModal
+            mode="add"
+            categories={categories}
+          />
         )}
 
         {edit && editProduct && (
-          <div className="fixed inset-0 bg-black/55 backdrop-blur-[4px] z-50 flex items-center justify-center p-4">
-            <div className="bg-surface-container-lowest max-w-lg w-full rounded-2xl shadow-xl overflow-hidden border border-outline-variant/35 flex flex-col max-h-[90vh]">
-              <div className="p-6 border-b border-outline-variant/30 flex justify-between items-center bg-surface-bright">
-                <h3 className="font-title-lg text-title-lg font-bold text-on-surface">Edit Produk</h3>
-                <Link href="/seller/products" className="text-on-surface-variant hover:text-primary transition-colors">
-                  <span className="material-symbols-outlined">close</span>
-                </Link>
-              </div>
-              <form action={handleEdit} className="p-6 overflow-y-auto space-y-4">
-                <input type="hidden" name="productId" value={editProduct.id} />
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="edit-title">
-                    Nama / Judul Barang
-                  </label>
-                  <input
-                    id="edit-title"
-                    name="title"
-                    required
-                    defaultValue={editProduct.title}
-                    type="text"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="edit-price">
-                    Harga (Rp) (Opsional jika Lelang)
-                  </label>
-                  <input
-                    id="edit-price"
-                    name="price"
-                    defaultValue={editProduct.price}
-                    type="number"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 bg-surface-container-low p-3 rounded-lg border border-outline-variant/30">
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="edit-isAuction"
-                      name="isAuction"
-                      type="checkbox"
-                      value="true"
-                      defaultChecked={editProduct.isAuction}
-                      className="w-4 h-4 cursor-pointer accent-primary"
-                    />
-                    <label htmlFor="edit-isAuction" className="text-xs font-semibold text-on-surface cursor-pointer">
-                      Jadikan Lelang
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="edit-isService"
-                      name="isService"
-                      type="checkbox"
-                      value="true"
-                      defaultChecked={editProduct.isService}
-                      className="w-4 h-4 cursor-pointer accent-primary"
-                    />
-                    <label htmlFor="edit-isService" className="text-xs font-semibold text-on-surface cursor-pointer">
-                      Jasa / Tutor
-                    </label>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="edit-startingBid">
-                    Harga Mulai Lelang (Wajib jika Lelang)
-                  </label>
-                  <input
-                    id="edit-startingBid"
-                    name="startingBid"
-                    defaultValue={editProduct.startingBid}
-                    type="number"
-                    placeholder="Contoh: 50000"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="edit-auctionEnds">
-                    Waktu Selesai Lelang (Wajib jika Lelang)
-                  </label>
-                  <input
-                    id="edit-auctionEnds"
-                    name="auctionEnds"
-                    defaultValue={editProduct.auctionEnds ? new Date(editProduct.auctionEnds.getTime() - editProduct.auctionEnds.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
-                    type="datetime-local"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="edit-category">
-                    Kategori
-                  </label>
-                  <select
-                    id="edit-category"
-                    name="category"
-                    required
-                    defaultValue={editProduct.category}
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer"
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="edit-faculty">
-                    Rekomendasi Fakultas (Opsional)
-                  </label>
-                  <input
-                    id="edit-faculty"
-                    name="faculty"
-                    defaultValue={editProduct.faculty || ""}
-                    type="text"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="edit-imageUrl">
-                    URL Foto Produk (Opsional)
-                  </label>
-                  <input
-                    id="edit-imageUrl"
-                    name="imageUrl"
-                    defaultValue={editProduct.imageUrl || ""}
-                    type="text"
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="edit-description">
-                    Deskripsi Detail
-                  </label>
-                  <textarea
-                    id="edit-description"
-                    name="description"
-                    required
-                    rows={4}
-                    defaultValue={editProduct.description}
-                    className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none"
-                  ></textarea>
-                </div>
-                <div className="pt-4 flex gap-3 border-t border-outline-variant/30">
-                  <Link
-                    href="/seller/products"
-                    className="flex-1 text-center py-2.5 border border-outline rounded-lg text-on-surface-variant hover:bg-surface-container font-semibold transition-colors"
-                  >
-                    Batal
-                  </Link>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 bg-primary text-on-primary rounded-lg hover:opacity-90 font-bold transition-opacity shadow-sm"
-                  >
-                    Simpan Perubahan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <ProductFormModal
+            mode="edit"
+            product={editProduct}
+            categories={categories}
+          />
         )}
       </main>
-    </div>
   );
 }

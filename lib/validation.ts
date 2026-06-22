@@ -25,9 +25,21 @@ export const productSchema = z.object({
   title: z.string().min(3, "Judul barang minimal 3 karakter").max(100, "Judul barang terlalu panjang"),
   description: z.string().min(10, "Deskripsi barang minimal 10 karakter"),
   price: z.preprocess(
-    (val) => parseFloat(val as string),
-    z.number().nonnegative("Harga harus bernilai positif atau 0")
-  ),
+    (val) => {
+      if (val === "" || val === null || val === undefined) return undefined;
+      if (typeof val === "number") return val;
+      const parsed = parseFloat(val as string);
+      return isNaN(parsed) ? "INVALID_NUMBER" : parsed;
+    },
+    z.union([
+      z.number(),
+      z.undefined(),
+      z.literal("INVALID_NUMBER")
+    ])
+  )
+    .refine((val) => val !== undefined, { message: "Harga wajib diisi" })
+    .refine((val) => val !== "INVALID_NUMBER", { message: "Harga harus berupa angka" })
+    .refine((val) => typeof val === "number" && val >= 0, { message: "Harga harus bernilai positif atau 0" }),
   category: z.string().min(1, "Kategori wajib dipilih"),
   faculty: z.string().optional().nullable(),
   imageUrl: z.string().url("Format URL gambar tidak valid").optional().or(z.literal("")).nullable(),

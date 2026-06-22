@@ -340,3 +340,87 @@ export async function updateUser(
     };
   }
 }
+
+const systemSettingsSchema = z.object({
+  autoVerifyEmail: z.boolean(),
+  maintenanceMode: z.boolean(),
+  maxUploadSizeMb: z.number().int().positive("Maksimum ukuran upload harus bernilai positif"),
+  maxCodPerDay: z.number().int().positive("Batas COD per hari harus bernilai positif"),
+});
+
+export async function saveSystemSettingsAction(
+  _prevState: ActionResponse | null,
+  formData: FormData
+): Promise<ActionResponse> {
+  await requireAdmin();
+
+  const rawData = {
+    autoVerifyEmail: formData.get("autoVerifyEmail") === "true",
+    maintenanceMode: formData.get("maintenanceMode") === "true",
+    maxUploadSizeMb: parseInt(formData.get("maxUploadSizeMb") as string || "5", 10),
+    maxCodPerDay: parseInt(formData.get("maxCodPerDay") as string || "10", 10),
+  };
+
+  const validation = systemSettingsSchema.safeParse(rawData);
+  if (!validation.success) {
+    return { validationErrors: extractValidationErrors(validation) };
+  }
+
+  const data = validation.data;
+
+  try {
+    await prisma.$transaction([
+      prisma.systemSetting.upsert({
+        where: { key: "auto_verify_email" },
+        update: { value: data.autoVerifyEmail ? "true" : "false" },
+        create: { key: "auto_verify_email", value: data.autoVerifyEmail ? "true" : "false" },
+      }),
+      prisma.systemSetting.upsert({
+        where: { key: "maintenance_mode" },
+        update: { value: data.maintenanceMode ? "true" : "false" },
+        create: { key: "maintenance_mode", value: data.maintenanceMode ? "true" : "false" },
+      }),
+      prisma.systemSetting.upsert({
+        where: { key: "max_upload_size_mb" },
+        update: { value: String(data.maxUploadSizeMb) },
+        create: { key: "max_upload_size_mb", value: String(data.maxUploadSizeMb) },
+      }),
+      prisma.systemSetting.upsert({
+        where: { key: "max_cod_per_day" },
+        update: { value: String(data.maxCodPerDay) },
+        create: { key: "max_cod_per_day", value: String(data.maxCodPerDay) },
+      }),
+    ]);
+
+    revalidatePath("/admin/settings");
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("[ADMIN ERROR] saveSystemSettingsAction failed:", error);
+    return {
+      error: "Gagal menyimpan konfigurasi. Terjadi kesalahan pada server.",
+    };
+  }
+}
+
+export async function getSystemSettings() {
+  try {
+    const settingsList = await prisma.systemSetting.findMany();
+    const settingsMap = new Map(settingsList.map((s) => [s.key, s.value]));
+
+    return {
+      autoVerifyEmail: settingsMap.get("auto_verify_email") !== "false",
+      maintenanceMode: settingsMap.get("maintenance_mode") === "true",
+      maxUploadSizeMb: parseInt(settingsMap.get("max_upload_size_mb") || "5", 10),
+      maxCodPerDay: parseInt(settingsMap.get("max_cod_per_day") || "10", 10),
+    };
+  } catch (error) {
+    console.error("Gagal memuat system settings dari db:", error);
+    return {
+      autoVerifyEmail: true,
+      maintenanceMode: false,
+      maxUploadSizeMb: 5,
+      maxCodPerDay: 10,
+    };
+  }
+}
+

@@ -9,6 +9,17 @@ import type { Partner, ChatMessage } from "@/lib/types";
 
 type Message = ChatMessage;
 
+import dynamic from "next/dynamic";
+
+const LeafletMap = dynamic(() => import("@/components/LeafletMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-surface-container-low text-on-surface-variant font-semibold">
+      Memuat Peta...
+    </div>
+  )
+});
+
 interface ChatWindowProps {
   currentUser: { id: string; name: string; avatarUrl: string | null };
   inboxPartners: Partner[];
@@ -44,6 +55,7 @@ export default function ChatWindow({
   const [localMessages, setLocalMessages] = useState<Message[]>(messages);
   const [inputVal, setInputVal] = useState("");
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const [showMap, setShowMap] = useState(false);
 
   const handleUpdateStatus = async (txId: string, status: string) => {
     if (!confirm(`Apakah Anda yakin ingin mengubah status COD menjadi ${status}?`)) return;
@@ -86,8 +98,40 @@ export default function ChatWindow({
   }, [messages]);
 
   useEffect(() => {
+    if (!selectedPartnerId) return;
+
+    const eventSource = new EventSource(`/api/chat/sse?partnerId=${selectedPartnerId}`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const newMsg = JSON.parse(event.data);
+        setLocalMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [
+            ...prev,
+            {
+              ...newMsg,
+              createdAt: new Date(newMsg.createdAt),
+            },
+          ];
+        });
+      } catch (err) {
+        console.error("[SSE] Failed to parse message:", err);
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [selectedPartnerId]);
+
+  useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [localMessages]);
+
+  useEffect(() => {
+    setShowMap(false);
+  }, [selectedPartnerId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,34 +314,45 @@ export default function ChatWindow({
             </div>
 
             {activeTransaction && (
-              <div className="bg-surface-container border-b border-outline-variant/30 px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 text-sm z-10 shrink-0">
-                <div className="flex items-start gap-2.5">
-                  <span className="material-symbols-outlined text-primary text-xl shrink-0 mt-0.5">
-                    handshake
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-bold text-on-surface">
-                      Status COD: {activeTransaction.status} ({activeTransaction.paymentMethod === "COD_CASH" ? "Bayar Tunai" : "Rekber Escrow"})
-                    </p>
-                    <p className="text-xs text-on-surface-variant mt-0.5 truncate">
-                      Lokasi: <span className="font-semibold">{activeTransaction.meetupLocation}</span>
-                      {activeTransaction.meetupTime && ` | Waktu: ${new Date(activeTransaction.meetupTime).toLocaleString("id-ID")}`}
-                    </p>
-
-                    {activeTransaction.paymentMethod !== "COD_CASH" && (
-                      <p className="text-xs font-semibold text-primary mt-1">
-                        Status Pembayaran: {
-                          activeTransaction.paymentStatus === "UNPAID" ? "Belum Dibayar" :
-                          activeTransaction.paymentStatus === "PAID" ? "Sudah Dibayar (Menunggu Verifikasi Admin)" :
-                          activeTransaction.paymentStatus === "VERIFIED" ? "Terverifikasi (Dana ditahan Sistem)" :
-                          activeTransaction.paymentStatus === "RELEASED" ? "Selesai (Dana dicairkan ke Penjual)" : "Dibatalkan/Refunded"
-                        }
+              <>
+                <div className="bg-surface-container border-b border-outline-variant/30 px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 text-sm z-10 shrink-0">
+                  <div className="flex items-start gap-2.5">
+                    <span className="material-symbols-outlined text-primary text-xl shrink-0 mt-0.5">
+                      handshake
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-on-surface">
+                        Status COD: {activeTransaction.status} ({activeTransaction.paymentMethod === "COD_CASH" ? "Bayar Tunai" : "Rekber Escrow"})
                       </p>
-                    )}
-                  </div>
-                </div>
+                      <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-2 flex-wrap">
+                        <span>Lokasi: <span className="font-semibold">{activeTransaction.meetupLocation.split(" (")[0]}</span></span>
+                        {activeTransaction.meetupTime && <span>| Waktu: <span className="font-semibold">{new Date(activeTransaction.meetupTime).toLocaleString("id-ID")}</span></span>}
+                        {activeTransaction.meetupLocation !== "Pertemuan Online via Zoom/Google Meet/Discord" && (
+                          <button
+                            type="button"
+                            onClick={() => setShowMap(!showMap)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-container bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded transition-all cursor-pointer select-none"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">map</span>
+                            {showMap ? "Sembunyikan Peta" : "Lihat Peta"}
+                          </button>
+                        )}
+                      </p>
 
-                <div className="flex flex-wrap gap-2 items-center shrink-0">
+                      {activeTransaction.paymentMethod !== "COD_CASH" && (
+                        <p className="text-xs font-semibold text-primary mt-1">
+                          Status Pembayaran: {
+                            activeTransaction.paymentStatus === "UNPAID" ? "Belum Dibayar" :
+                            activeTransaction.paymentStatus === "PAID" ? "Sudah Dibayar (Menunggu Verifikasi Admin)" :
+                            activeTransaction.paymentStatus === "VERIFIED" ? "Terverifikasi (Dana ditahan Sistem)" :
+                            activeTransaction.paymentStatus === "RELEASED" ? "Selesai (Dana dicairkan ke Penjual)" : "Dibatalkan/Refunded"
+                          }
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 items-center shrink-0">
                   {activeTransaction.sellerId === currentUser.id && (
                     <>
                       {activeTransaction.status === "PENDING" && (
@@ -405,7 +460,16 @@ export default function ChatWindow({
                   )}
                 </div>
               </div>
-            )}
+              {showMap && activeTransaction.meetupLocation !== "Pertemuan Online via Zoom/Google Meet/Discord" && (
+                <div className="h-[250px] w-full border-b border-outline-variant/30 relative z-10">
+                  <LeafletMap
+                    mode="readonly"
+                    locationString={activeTransaction.meetupLocation}
+                  />
+                </div>
+              )}
+            </>
+          )}
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4 bg-surface-bright/50">
               {localMessages.map((msg) => {

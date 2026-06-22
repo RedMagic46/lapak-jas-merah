@@ -20,26 +20,33 @@ export default async function ChatPage({ searchParams }: PageProps) {
 
   const { partnerId, productId } = await searchParams;
 
-  const inboxPartners = await getInboxUsers();
+  // 1. Fetch inbox partners and active messages concurrently
+  const [inboxPartners, currentMessages] = await Promise.all([
+    getInboxUsers(),
+    partnerId
+      ? prisma.message.findMany({
+          where: {
+            OR: [
+              { senderId: user.id, receiverId: partnerId },
+              { senderId: partnerId, receiverId: user.id }
+            ]
+          },
+          orderBy: {
+            createdAt: "asc"
+          }
+        })
+      : Promise.resolve([] as Message[])
+  ]);
 
-  let messages: Message[] = [];
+  let messages = currentMessages;
   let activeProduct = null;
+  let activeTransaction = null;
+  let blockedByMe = false;
+  let blockingMe = false;
 
   if (partnerId) {
-
-    messages = await prisma.message.findMany({
-      where: {
-        OR: [
-          { senderId: user.id, receiverId: partnerId },
-          { senderId: partnerId, receiverId: user.id }
-        ]
-      },
-      orderBy: {
-        createdAt: "asc"
-      }
-    });
-
-    await prisma.message.updateMany({
+    // 2. Mark incoming messages as read in background
+    const updateReadPromise = prisma.message.updateMany({
       where: {
         senderId: partnerId,
         receiverId: user.id,
@@ -51,36 +58,14 @@ export default async function ChatPage({ searchParams }: PageProps) {
     });
 
     const targetProductId = productId || inboxPartners.find(p => p.partnerId === partnerId)?.productId;
-    if (targetProductId) {
-      activeProduct = await prisma.product.findUnique({
-        where: { id: targetProductId }
-      });
-    }
-  } else if (inboxPartners.length > 0) {
 
-    const firstPartner = inboxPartners[0];
-    redirect(`/chat?partnerId=${firstPartner.partnerId}${firstPartner.productId ? `&productId=${firstPartner.productId}` : ""}`);
-  }
+    // 3. Fetch product details
+    const productPromise = targetProductId
+      ? prisma.product.findUnique({ where: { id: targetProductId } })
+      : Promise.resolve(null);
 
-  let activeTransaction = null;
-  if (user && partnerId && activeProduct) {
-    activeTransaction = await prisma.transaction.findFirst({
-      where: {
-        productId: activeProduct.id,
-        OR: [
-          { buyerId: user.id, sellerId: partnerId },
-          { buyerId: partnerId, sellerId: user.id }
-        ]
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-  }
-  let blockedByMe = false;
-  let blockingMe = false;
-  if (user && partnerId) {
-    const blockMe = await prisma.block.findUnique({
+    // 4. Block status checks
+    const blockMePromise = prisma.block.findUnique({
       where: {
         blockerId_blockedId: {
           blockerId: user.id,
@@ -88,7 +73,8 @@ export default async function ChatPage({ searchParams }: PageProps) {
         },
       },
     });
-    const blockPartner = await prisma.block.findUnique({
+
+    const blockPartnerPromise = prisma.block.findUnique({
       where: {
         blockerId_blockedId: {
           blockerId: partnerId,
@@ -96,8 +82,36 @@ export default async function ChatPage({ searchParams }: PageProps) {
         },
       },
     });
+
+    // Run active conversation details concurrently
+    const [prod, blockMe, blockPartner] = await Promise.all([
+      productPromise,
+      blockMePromise,
+      blockPartnerPromise,
+      updateReadPromise
+    ]);
+
+    activeProduct = prod;
     blockedByMe = !!blockMe;
     blockingMe = !!blockPartner;
+
+    if (activeProduct) {
+      activeTransaction = await prisma.transaction.findFirst({
+        where: {
+          productId: activeProduct.id,
+          OR: [
+            { buyerId: user.id, sellerId: partnerId },
+            { buyerId: partnerId, sellerId: user.id }
+          ]
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
+    }
+  } else if (inboxPartners.length > 0) {
+    const firstPartner = inboxPartners[0];
+    redirect(`/chat?partnerId=${firstPartner.partnerId}${firstPartner.productId ? `&productId=${firstPartner.productId}` : ""}`);
   }
 
   return (

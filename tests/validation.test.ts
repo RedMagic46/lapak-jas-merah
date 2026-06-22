@@ -136,6 +136,21 @@ describe("Validation Schemas", () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it("should fail for empty price with friendly error message", () => {
+      const result = productSchema.safeParse({
+        title: "Jas Almamater UMM",
+        description: "Jas almamater UMM kondisi sangat baik.",
+        price: "",
+        category: "Jas Almamater",
+        faculty: "Teknik",
+        imageUrl: "",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe("Harga wajib diisi");
+      }
+    });
   });
 
   describe("reviewSchema", () => {

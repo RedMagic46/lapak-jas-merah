@@ -179,19 +179,38 @@ model FAQ {
 }
 
 model ForumPost {
-  id           String   @id @default(cuid())
+  id           String       @id @default(cuid())
   title        String
   content      String
   category     String
   authorId     String
   authorName   String
-  likes        Int      @default(0)
-  repliesCount Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isAnonymous  Boolean      @default(false)
+  likes        Int          @default(0)
+  repliesCount Int          @default(0)
+  replies      ForumReply[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@index([createdAt])
   @@index([authorId])
+}
+
+model ForumReply {
+  id          String    @id @default(cuid())
+  postId      String
+  post        ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  content     String
+  authorId    String
+  authorName  String
+  createdAt   DateTime  @default(now())
+
+  @@index([postId])
+}
+
+model SystemSetting {
+  key   String @id
+  value String
 }
 
 model ItemRequest {

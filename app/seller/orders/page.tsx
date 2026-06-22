@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import SellerSidebar from "@/components/SellerSidebar";
 import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateTransactionStatus } from "@/app/actions/transactions";
@@ -27,9 +26,28 @@ export default async function SellerOrdersPage({ searchParams }: PageProps) {
   const transactions = await prisma.transaction.findMany({
     where: whereClause,
     orderBy: { createdAt: "desc" },
-    include: {
-      buyer: true,
-      product: true,
+    select: {
+      id: true,
+      status: true,
+      meetupLocation: true,
+      meetupTime: true,
+      notes: true,
+      productId: true,
+      buyer: {
+        select: {
+          id: true,
+          name: true,
+          nim: true,
+        }
+      },
+      product: {
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          imageUrl: true,
+        }
+      }
     }
   });
 
@@ -52,10 +70,7 @@ export default async function SellerOrdersPage({ searchParams }: PageProps) {
   const currentTab = status || "ALL";
 
   return (
-    <div className="bg-surface text-on-surface font-body-md min-h-screen flex">
-      <SellerSidebar />
-
-      <main className="flex-grow lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
+    <main className="flex-grow lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
         <header className="mb-8">
           <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface font-bold leading-tight">
             Daftar Pesanan &amp; Transaksi COD
@@ -206,6 +221,5 @@ export default async function SellerOrdersPage({ searchParams }: PageProps) {
           )}
         </div>
       </main>
-    </div>
   );
 }

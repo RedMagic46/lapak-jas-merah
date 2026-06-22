@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import AdminSidebar from "@/components/AdminSidebar";
 import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyUserKTM } from "@/app/actions/admin";
@@ -13,12 +12,19 @@ export default async function AdminDashboardPage() {
     redirect("/login");
   }
 
+  const startDate = new Date();
+  startDate.setMonth(startDate.getMonth() - 5);
+  startDate.setDate(1);
+  startDate.setHours(0, 0, 0, 0);
+
   const [
     totalUsers,
     activeListings,
     pendingReports,
     verificationRequests,
-    unpaidEscrows
+    unpaidEscrows,
+    transactionsLast6Months,
+    productsGrouped
   ] = await Promise.all([
     prisma.user.count(),
     prisma.product.count({ where: { status: "ACTIVE" } }),
@@ -39,8 +45,77 @@ export default async function AdminDashboardPage() {
         buyer: true,
         product: true
       }
+    }),
+    prisma.transaction.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+    }),
+    prisma.product.groupBy({
+      by: ["category"],
+      _count: {
+        id: true,
+      },
+      where: {
+        status: "ACTIVE",
+      },
     })
   ]);
+
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    return {
+      month: d.getMonth(),
+      year: d.getFullYear(),
+      name: d.toLocaleString("id-ID", { month: "short" }),
+    };
+  }).reverse();
+
+  const transactionCounts = last6Months.map((m) => {
+    const count = transactionsLast6Months.filter((t) => {
+      const date = new Date(t.createdAt);
+      return date.getMonth() === m.month && date.getFullYear() === m.year;
+    }).length;
+    return {
+      name: m.name,
+      count,
+    };
+  });
+
+  const maxCount = Math.max(...transactionCounts.map((tc) => tc.count), 1);
+
+  const totalActiveProducts = productsGrouped.reduce((acc, curr) => acc + curr._count.id, 0);
+
+  const categoryStats = productsGrouped.map((g) => ({
+    category: g.category,
+    count: g._count.id,
+    percentage: totalActiveProducts > 0 ? Math.round((g._count.id / totalActiveProducts) * 100) : 0,
+  })).sort((a, b) => b.count - a.count);
+
+  const topCategories = categoryStats.slice(0, 4);
+
+  const colors = ["#91000a", "#4c56af", "#ffe16d", "#e2e2e2"];
+  let accumPercent = 0;
+  const gradientParts: string[] = [];
+  topCategories.forEach((tc, idx) => {
+    const start = accumPercent;
+    accumPercent += tc.percentage;
+    const end = accumPercent;
+    gradientParts.push(`${colors[idx % colors.length]} ${start}% ${end}%`);
+  });
+
+  if (accumPercent < 100) {
+    gradientParts.push(`#e2e2e2 ${accumPercent}% 100%`);
+  }
+
+  const conicGradientStyle = `conic-gradient(from 0deg, ${gradientParts.join(", ")})`;
+  const topCategoryName = topCategories[0]?.category || "N/A";
 
   async function handleVerifyKTM(formData: FormData) {
     "use server";
@@ -59,10 +134,7 @@ export default async function AdminDashboardPage() {
   }
 
   return (
-    <div className="bg-surface text-on-surface font-body-md min-h-screen flex">
-      <AdminSidebar />
-
-      <main className="flex-1 lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
+    <main className="flex-1 lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
         <header className="flex justify-between items-center mb-8">
           <div>
             <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface font-bold leading-tight">
@@ -149,86 +221,69 @@ export default async function AdminDashboardPage() {
             <h3 className="font-title-lg text-title-lg text-on-surface mb-6 font-bold">Transaksi Bulanan</h3>
             <div className="flex-1 flex items-end justify-between gap-2 pt-4 border-b border-surface-variant pb-2 relative">
               <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-on-surface-variant -ml-6">
-                <span>5k</span>
-                <span>4k</span>
-                <span>3k</span>
-                <span>2k</span>
-                <span>1k</span>
+                <span>{maxCount}</span>
+                <span>{Math.round(maxCount * 0.75)}</span>
+                <span>{Math.round(maxCount * 0.5)}</span>
+                <span>{Math.round(maxCount * 0.25)}</span>
+                <span>0</span>
               </div>
-              <div className="w-full bg-primary/20 rounded-t-sm h-[40%] hover:bg-primary transition-colors cursor-pointer group relative">
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-surface-container-highest text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                  2k
-                </div>
-              </div>
-              <div className="w-full bg-primary/40 rounded-t-sm h-[60%] hover:bg-primary transition-colors cursor-pointer group relative">
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-surface-container-highest text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                  3k
-                </div>
-              </div>
-              <div className="w-full bg-primary/30 rounded-t-sm h-[50%] hover:bg-primary transition-colors cursor-pointer group relative">
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-surface-container-highest text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                  2.5k
-                </div>
-              </div>
-              <div className="w-full bg-primary/70 rounded-t-sm h-[85%] hover:bg-primary transition-colors cursor-pointer group relative">
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-surface-container-highest text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                  4.2k
-                </div>
-              </div>
-              <div className="w-full bg-primary rounded-t-sm h-[100%] cursor-pointer group relative">
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-surface-container-highest text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                  5k
-                </div>
-              </div>
-              <div className="w-full bg-primary/50 rounded-t-sm h-[70%] hover:bg-primary transition-colors cursor-pointer group relative">
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-surface-container-highest text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                  3.5k
-                </div>
-              </div>
+              {transactionCounts.map((tc, idx) => {
+                const heightPercent = `${(tc.count / maxCount) * 100}%`;
+                return (
+                  <div
+                    key={idx}
+                    style={{ height: heightPercent }}
+                    className="w-full bg-primary/40 rounded-t-sm hover:bg-primary transition-colors cursor-pointer group relative min-h-[4px]"
+                  >
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-surface-container-highest text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold whitespace-nowrap z-10">
+                      {tc.count} Tx
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <div className="flex justify-between mt-2 text-[10px] text-on-surface-variant font-label-md">
-              <span>Jan</span>
-              <span>Feb</span>
-              <span>Mar</span>
-              <span>Apr</span>
-              <span>May</span>
-              <span>Jun</span>
+              {transactionCounts.map((tc, idx) => (
+                <span key={idx}>{tc.name}</span>
+              ))}
             </div>
           </div>
 
           <div className="bg-surface-container-lowest rounded-xl p-card-padding shadow-sm border border-outline-variant/20 h-[350px] flex flex-col">
             <h3 className="font-title-lg text-title-lg text-on-surface mb-6 font-bold">Kategori Terpopuler</h3>
             <div className="flex-1 flex items-center justify-center gap-8">
-              <div
-                className="w-48 h-48 rounded-full relative"
-                style={{
-                  background:
-                    "conic-gradient(from 0deg, #91000a 0% 45%, #4c56af 45% 75%, #ffe16d 75% 90%, #e2e2e2 90% 100%)",
-                }}
-              >
-                <div className="absolute inset-4 bg-surface-container-lowest rounded-full shadow-inner flex items-center justify-center flex-col">
-                  <span className="font-label-sm text-[10px] text-on-surface-variant">Top</span>
-                  <span className="font-headline-md text-headline-md text-primary font-bold">Buku</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 text-xs font-semibold">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-primary"></div>
-                  <span>Buku (45%)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-secondary"></div>
-                  <span>Elektronik (30%)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-tertiary-fixed"></div>
-                  <span>Pakaian (15%)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-surface-variant"></div>
-                  <span>Lainnya (10%)</span>
-                </div>
-              </div>
+              {topCategories.length === 0 ? (
+                <p className="text-sm text-on-surface-variant">Belum ada barang aktif</p>
+              ) : (
+                <>
+                  <div
+                    className="w-48 h-48 rounded-full relative"
+                    style={{
+                      background: conicGradientStyle,
+                    }}
+                  >
+                    <div className="absolute inset-4 bg-surface-container-lowest rounded-full shadow-inner flex items-center justify-center flex-col">
+                      <span className="font-label-sm text-[10px] text-on-surface-variant">Top</span>
+                      <span className="font-headline-md text-headline-md text-primary font-bold truncate max-w-[120px]">
+                        {topCategoryName}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-3 text-xs font-semibold">
+                    {topCategories.map((tc, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: colors[idx % colors.length] }}
+                        ></div>
+                        <span className="truncate max-w-[100px]">
+                          {tc.category} ({tc.percentage}%)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -427,6 +482,5 @@ export default async function AdminDashboardPage() {
           </div>
         </section>
       </main>
-    </div>
   );
 }

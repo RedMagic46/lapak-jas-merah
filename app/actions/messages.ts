@@ -88,6 +88,7 @@ export async function getInboxUsers(): Promise<Partner[]> {
       orderBy: {
         createdAt: "desc",
       },
+      take: 200,
       include: {
         sender: true,
         receiver: true,

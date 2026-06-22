@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
+import { headers } from "next/headers";
 
 export async function sendVerificationEmail({
   email,
@@ -13,7 +14,28 @@ export async function sendVerificationEmail({
   token: string;
   expiresInHours: number;
 }) {
-  const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  let domain = "";
+  try {
+    const headersList = await headers();
+    const host = headersList.get("host");
+    const proto = headersList.get("x-forwarded-proto") || "http";
+    if (host) {
+      domain = `${proto}://${host}`;
+    }
+  } catch (e) {
+    // Graceful fallback if called outside of Next request context
+  }
+
+  if (!domain) {
+    domain = process.env.NEXT_PUBLIC_APP_URL || "";
+  }
+  if (!domain && process.env.VERCEL_URL) {
+    domain = `https://${process.env.VERCEL_URL}`;
+  }
+  if (!domain) {
+    domain = "http://localhost:3000";
+  }
+
   const verificationLink = `${domain}/verify-email?token=${token}`;
 
   const textContent = `Halo ${name},\n\nTerima kasih telah mendaftar di Lapak Jas Merah.\n\nSilakan verifikasi akun Anda dengan mengklik tautan berikut:\n${verificationLink}\n\nTautan ini berlaku selama ${expiresInHours} jam.\n\nSalam,\nTim Lapak Jas Merah`;

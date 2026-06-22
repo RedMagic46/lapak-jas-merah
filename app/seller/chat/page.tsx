@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import SellerSidebar from "@/components/SellerSidebar";
 import { getAuthUser } from "@/lib/auth";
 import { getInboxUsers } from "@/app/actions/messages";
 import { prisma } from "@/lib/prisma";
@@ -100,10 +99,7 @@ export default async function SellerChatPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="h-screen flex bg-background overflow-hidden">
-      <SellerSidebar />
-
-      <div className="flex-1 lg:ml-64 flex flex-col h-full overflow-hidden">
+    <div className="flex-1 lg:ml-64 flex flex-col h-full overflow-hidden h-screen bg-background">
         <ChatWindow
           currentUser={{
             id: user.id,
@@ -118,7 +114,6 @@ export default async function SellerChatPage({ searchParams }: PageProps) {
           isBlockedByMe={blockedByMe}
           isBlockingMe={blockingMe}
         />
-      </div>
     </div>
   );
 }

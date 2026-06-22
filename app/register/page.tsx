@@ -88,72 +88,112 @@ export default function RegisterPage() {
             <form action={formAction} className="space-y-5">
               <div>
                 <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold" htmlFor="fullName">
-                  Nama Lengkap
+                  Nama Lengkap <span className="text-error">*</span>
                 </label>
                 <input
-                  className="w-full bg-surface-container-lowest border border-outline-variant text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40"
+                  className={`w-full bg-surface-container-lowest border text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40 ${
+                    state?.validationErrors?.fullName ? "border-error" : "border-outline-variant"
+                  }`}
                   id="fullName"
                   name="fullName"
                   placeholder="Masukkan nama lengkap Anda"
                   required
                   type="text"
                 />
+                {state?.validationErrors?.fullName && (
+                  <p className="text-error text-xs mt-1 font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">error</span>
+                    {state.validationErrors.fullName[0]}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold" htmlFor="nim">
-                  NIM (Nomor Induk Mahasiswa)
+                  NIM (Nomor Induk Mahasiswa) <span className="text-error">*</span>
                 </label>
                 <input
-                  className="w-full bg-surface-container-lowest border border-outline-variant text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40"
+                  className={`w-full bg-surface-container-lowest border text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40 ${
+                    state?.validationErrors?.nim ? "border-error" : "border-outline-variant"
+                  }`}
                   id="nim"
                   name="nim"
                   placeholder="202410370311xxx"
                   required
                   type="text"
                 />
+                {state?.validationErrors?.nim && (
+                  <p className="text-error text-xs mt-1 font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">error</span>
+                    {state.validationErrors.nim[0]}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold" htmlFor="email">
-                  Email Resmi UMM
+                  Email Resmi UMM <span className="text-error">*</span>
                 </label>
                 <input
-                  className="w-full bg-surface-container-lowest border border-outline-variant text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40"
+                  className={`w-full bg-surface-container-lowest border text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40 ${
+                    state?.validationErrors?.email ? "border-error" : "border-outline-variant"
+                  }`}
                   id="email"
                   name="email"
                   placeholder="nim@webmail.umm.ac.id"
                   required
                   type="email"
                 />
+                {state?.validationErrors?.email && (
+                  <p className="text-error text-xs mt-1 font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">error</span>
+                    {state.validationErrors.email[0]}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold" htmlFor="password">
-                  Password
+                  Password <span className="text-error">*</span>
                 </label>
                 <input
-                  className="w-full bg-surface-container-lowest border border-outline-variant text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40"
+                  className={`w-full bg-surface-container-lowest border text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40 ${
+                    state?.validationErrors?.password ? "border-error" : "border-outline-variant"
+                  }`}
                   id="password"
                   name="password"
                   placeholder="••••••••"
                   required
                   type="password"
                 />
+                {state?.validationErrors?.password && (
+                  <p className="text-error text-xs mt-1 font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">error</span>
+                    {state.validationErrors.password[0]}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold" htmlFor="confirmPassword">
-                  Konfirmasi Password
+                  Konfirmasi Password <span className="text-error">*</span>
                 </label>
                 <input
-                  className="w-full bg-surface-container-lowest border border-outline-variant text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40"
+                  className={`w-full bg-surface-container-lowest border text-on-surface text-body-md font-body-md rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/40 ${
+                    state?.validationErrors?.confirmPassword ? "border-error" : "border-outline-variant"
+                  }`}
                   id="confirmPassword"
                   name="confirmPassword"
                   placeholder="••••••••"
                   required
                   type="password"
                 />
+                {state?.validationErrors?.confirmPassword && (
+                  <p className="text-error text-xs mt-1 font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">error</span>
+                    {state.validationErrors.confirmPassword[0]}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-start gap-2 pt-2">
@@ -165,11 +205,11 @@ export default function RegisterPage() {
                 />
                 <label className="font-body-md text-body-md text-on-surface-variant text-sm cursor-pointer" htmlFor="terms">
                   Saya setuju dengan{" "}
-                  <Link className="text-primary hover:underline font-semibold" href="#">
+                  <Link className="text-primary hover:underline font-semibold" href="/">
                     Syarat Layanan
                   </Link>{" "}
                   dan{" "}
-                  <Link className="text-primary hover:underline font-semibold" href="#">
+                  <Link className="text-primary hover:underline font-semibold" href="/">
                     Kebijakan Privasi
                   </Link>
                   .

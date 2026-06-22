@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import AdminSidebar from "@/components/AdminSidebar";
 import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteForumPost } from "@/app/actions/admin";
@@ -24,10 +23,7 @@ export default async function AdminForumPage() {
   }
 
   return (
-    <div className="bg-surface text-on-surface font-body-md min-h-screen flex">
-      <AdminSidebar />
-
-      <main className="flex-grow lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
+    <main className="flex-grow lg:ml-64 p-container-margin w-full max-w-[1440px] mx-auto pb-20">
         <header className="mb-8">
           <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface font-bold leading-tight">
             Moderasi Forum Komunitas
@@ -64,7 +60,9 @@ export default async function AdminForumPage() {
                           {post.category}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-xs text-on-surface-variant">{post.authorName}</td>
+                      <td className="py-3 px-4 text-xs text-on-surface-variant">
+                        {post.authorName} {post.isAnonymous && <span className="text-error font-bold ml-1">(Anonim)</span>}
+                      </td>
                       <td className="py-3 px-4 text-xs max-w-[200px] truncate">{post.content}</td>
                       <td className="py-3 px-4 text-xs font-bold text-on-surface-variant">
                         {post.likes} Likes / {post.repliesCount} Balasan
@@ -88,6 +86,5 @@ export default async function AdminForumPage() {
           )}
         </div>
       </main>
-    </div>
   );
 }
