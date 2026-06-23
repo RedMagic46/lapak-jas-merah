@@ -47,3 +47,8 @@ remove-comments.ts
 
 # design mockups
 /halaman/
+
+# project reports and scripts
+Use Case.pdf
+Laporan_Implementasi_RPL.pdf
+generate_report.py

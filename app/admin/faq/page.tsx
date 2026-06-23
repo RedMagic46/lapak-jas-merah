@@ -45,12 +45,13 @@ export default async function AdminFAQPage() {
           <form action={handleCreate} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="question">
-                Pertanyaan
+                Pertanyaan <span className="text-[10px] font-normal text-on-surface-variant/70">(Minimal 5 karakter)</span>
               </label>
               <input
                 id="question"
                 name="question"
                 required
+                minLength={5}
                 placeholder="Contoh: Bagaimana cara mengubah peran menjadi Penjual?"
                 type="text"
                 className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20"
@@ -58,12 +59,13 @@ export default async function AdminFAQPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-on-surface-variant mb-1" htmlFor="answer">
-                Jawaban Singkat
+                Jawaban Singkat <span className="text-[10px] font-normal text-on-surface-variant/70">(Minimal 5 karakter)</span>
               </label>
               <textarea
                 id="answer"
                 name="answer"
                 required
+                minLength={5}
                 rows={3}
                 placeholder="Tuliskan petunjuk jawaban yang informatif..."
                 className="w-full bg-surface border border-outline-variant/50 rounded-lg p-2.5 outline-none font-body-md text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none"

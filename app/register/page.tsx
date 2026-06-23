@@ -205,11 +205,11 @@ export default function RegisterPage() {
                 />
                 <label className="font-body-md text-body-md text-on-surface-variant text-sm cursor-pointer" htmlFor="terms">
                   Saya setuju dengan{" "}
-                  <Link className="text-primary hover:underline font-semibold" href="/">
+                  <Link className="text-primary hover:underline font-semibold" href="/terms">
                     Syarat Layanan
                   </Link>{" "}
                   dan{" "}
-                  <Link className="text-primary hover:underline font-semibold" href="/">
+                  <Link className="text-primary hover:underline font-semibold" href="/privacy">
                     Kebijakan Privasi
                   </Link>
                   .
