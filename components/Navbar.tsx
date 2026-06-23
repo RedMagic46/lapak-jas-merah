@@ -69,6 +69,17 @@ export default async function Navbar() {
               </Link>
             )}
 
+            {user && (
+              <Link
+                href="/buyer/orders"
+                className="hidden md:flex items-center gap-1 px-3 py-1.5 bg-secondary-container/10 text-on-secondary-container hover:bg-secondary-container/20 rounded-full font-label-md text-label-md transition-colors"
+                title="Riwayat Belanja Saya"
+              >
+                <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                <span>Belanjaan Saya</span>
+              </Link>
+            )}
+
             <Link
               href="/seller/settings"
               className="flex items-center gap-2 pl-2 pr-4 py-1 bg-surface-container-lowest hover:bg-surface-container-low rounded-full border border-outline-variant/35 transition-colors"

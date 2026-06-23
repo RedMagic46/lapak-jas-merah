@@ -25,6 +25,7 @@ export async function proxy(request: NextRequest) {
   const payload = token ? await verifyEdgeToken(token) : null;
 
   const isSellerPath = pathname.startsWith("/seller");
+  const isBuyerPath = pathname.startsWith("/buyer");
   const isAdminPath = pathname.startsWith("/admin");
   const isChatPath = pathname.startsWith("/chat");
   const isAuthPage =
@@ -50,6 +51,12 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isSellerPath) {
+    if (!payload) {
+      return getLoginRedirect();
+    }
+  }
+
+  if (isBuyerPath) {
     if (!payload) {
       return getLoginRedirect();
     }
@@ -90,6 +97,7 @@ export const config = {
     "/chat/:path*",
     "/seller/:path*",
     "/admin/:path*",
+    "/buyer/:path*",
     "/login",
     "/register",
   ],
